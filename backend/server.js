@@ -1,6 +1,8 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { connectDB } from './config/db.js';
 import foodRoutes from './routes/foodRoutes.js';
 import userRoutes from './routes/userRoutes.js';
@@ -11,6 +13,9 @@ import Food from './models/Food.js';
 import { seedDatabase } from './config/seedData.js';
 
 dotenv.config();
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
 
@@ -31,6 +36,19 @@ app.use('/api/foods', foodRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/categories', categoryRoutes);
+
+// Serve frontend build in production
+if (process.env.NODE_ENV === 'production') {
+  const frontendDist = path.join(__dirname, '../frontend/dist');
+  app.use(express.static(frontendDist));
+
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) {
+      return next();
+    }
+    res.sendFile(path.resolve(frontendDist, 'index.html'));
+  });
+}
 
 // Error Handling Middlewares
 app.use(notFound);
